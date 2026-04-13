@@ -11,23 +11,76 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+This version of the simulator recommends songs by comparing each track's genre, mood, energy, valence, and acousticness to a user's taste profile. It prioritizes matching the user's stated vibe first, then uses numeric features to reward songs that are closest to the user's preferred feel instead of simply favoring songs with the biggest values.
 
 ---
 
 ## How The System Works
 
-Explain your design in plain language.
+Real-world recommenders combine item features and user preferences, then rank the items with the strongest fit. My version does the same thing in a much simpler and more transparent way: it looks at the vibe features attached to each song, compares them to one user taste profile, gives each song a score, and returns the top `k` results. In my experience, musical vibe is mostly defined by a mix of category labels and feel-based numbers, so I want `genre` and `mood` to anchor the recommendation while `energy`, `valence`, and `acousticness` fine-tune it.
 
-Some prompts to answer:
+After reviewing `data/songs.csv`, the strongest features for a simple content-based system are `genre`, `mood`, `energy`, `valence`, and `acousticness`. The dataset already includes two helpful numeric depth features, `danceability` and `acousticness`, so I kept those and expanded the catalog with more genres and moods such as `hip hop`, `house`, `classical`, `country`, `world`, `blues`, `dream pop`, `playful`, `confident`, `calm`, and `nostalgic`. These additions make it easier for the system to tell the difference between very different vibes instead of only choosing among pop, lofi, and rock.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+My user profile is:
 
-You can include a simple diagram or bullet list if helpful.
+```python
+user_prefs = {
+    "genre": "lofi",
+    "mood": "focused",
+    "energy": 0.38,
+    "valence": 0.58,
+    "likes_acoustic": True,
+}
+```
+
+I think this profile is broad enough to separate "intense rock" from "chill lofi" because it combines a categorical preference (`genre`, `mood`) with low target energy and a preference for acoustic texture. If the profile only used one feature, like genre alone, the system would be too narrow and miss songs that match the same overall feel in neighboring styles.
+
+My finalized Algorithm Recipe is:
+
+- `+2.0` points for a `genre` match because genre is the strongest high-level signal.
+- `+1.0` point for a `mood` match because mood matters a lot but is slightly less specific than genre.
+- Add an `energy` similarity score using `1 - abs(song_energy - user_energy)` so closer songs earn more points.
+- Add a smaller `valence` similarity score using `1 - abs(song_valence - user_valence)` to capture emotional brightness.
+- Add `+0.5` points when the song's `acousticness` agrees with whether the user likes acoustic sound.
+
+This system needs both a scoring rule and a ranking rule. The scoring rule judges one song at a time and turns its features into a number. The ranking rule sorts the full list of song scores from highest to lowest and returns the top recommendations.
+
+The `Song` object in my simulation uses: `id`, `title`, `artist`, `genre`, `mood`, `energy`, `tempo_bpm`, `valence`, `danceability`, and `acousticness`.
+
+The `UserProfile` object stores: `favorite_genre`, `favorite_mood`, `target_energy`, and `likes_acoustic`.
+
+```mermaid
+flowchart LR
+    A[User Preferences] --> B[Loop Through Each Song in songs.csv]
+    B --> C[Check Genre and Mood Matches]
+    C --> D[Compute Energy and Valence Similarity]
+    D --> E[Add Acoustic Preference Bonus]
+    E --> F[Assign Total Score to Song]
+    F --> G[Sort All Songs by Score]
+    G --> H[Return Top K Recommendations]
+```
+
+One bias I expect is that this system may over-prioritize `genre` and push down songs from other genres that still match the same mood and energy. It also depends on human-written labels in a tiny dataset, so if those labels are inconsistent, the recommender will inherit that bias.
+
+CLI output snapshot from `python -m src.main` with the default `pop/happy` profile:
+
+```text
+Loaded songs: 18
+
+Top recommendations:
+
+1. Sunrise City by Neon Echo
+   Score: 5.46
+   Reasons: genre match (+2.0), mood match (+1.0), energy similarity (+0.98), valence similarity (+0.98), acoustic preference match (+0.5)
+
+2. Gym Hero by Max Pulse
+   Score: 4.32
+   Reasons: genre match (+2.0), energy similarity (+0.87), valence similarity (+0.95), acoustic preference match (+0.5)
+
+3. Rooftop Lights by Indigo Parade
+   Score: 3.45
+   Reasons: mood match (+1.0), energy similarity (+0.96), valence similarity (+0.99), acoustic preference match (+0.5)
+```
 
 ---
 
