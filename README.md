@@ -82,6 +82,34 @@ Top recommendations:
    Reasons: mood match (+1.0), energy similarity (+0.96), valence similarity (+0.99), acoustic preference match (+0.5)
 ```
 
+Evaluation snapshots from `python -m src.main` with multiple profiles:
+
+```text
+=== Chill Lofi ===
+1. Focus Flow by LoRoom
+   Score: 5.47
+2. Library Rain by Paper Lanterns
+   Score: 4.45
+3. Midnight Coding by LoRoom
+   Score: 4.44
+
+=== Deep Intense Rock ===
+1. Storm Runner by Voltline
+   Score: 5.46
+2. Gym Hero by Max Pulse
+   Score: 3.17
+3. Night Drive Loop by Neon Echo
+   Score: 2.29
+
+=== Adversarial Sad Runner ===
+1. Gym Hero by Max Pulse
+   Score: 3.95
+2. Sunrise City by Neon Echo
+   Score: 3.83
+3. Blue Hour Train by Ash Harbor
+   Score: 2.40
+```
+
 ---
 
 ## Getting Started
@@ -121,11 +149,9 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+I tested four profiles in the CLI: High-Energy Pop, Chill Lofi, Deep Intense Rock, and an adversarial profile with conflicting preferences (`genre="pop"`, `mood="melancholy"`, `energy=0.9`). The normal profiles behaved the way I expected: each one found a different top song that matched the intended vibe. The adversarial profile was more revealing because `Gym Hero` still ranked first, which showed me that genre and energy can overpower mood in the current design.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+I also ran a small weight-shift experiment. I reduced the genre bonus from `+2.0` to `+1.0` and doubled the energy weight from `1.0` to `2.0` for the High-Energy Pop profile. After that change, `Rooftop Lights` moved above `Gym Hero`, which made the results more varied but also less strict about genre. That made the recommendations feel different rather than simply more accurate.
 
 ---
 
@@ -149,10 +175,9 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
+This project made it clear that recommenders are really a chain of small design choices. The system feels convincing when the profile is clear and the dataset contains a close match, but it can produce odd results when the weights do not reflect the user's real intent. Seeing `Gym Hero` show up for an emotionally mixed profile helped me understand how easily one strong signal can dominate the rest.
 
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+I also learned that bias in a recommender does not have to look dramatic to matter. A small genre bonus or a tiny catalog can quietly create a filter bubble, where the same kinds of songs keep rising to the top even when another part of the profile points somewhere else. That is a useful reminder that transparency and human judgment still matter, even in a simple classroom system.
 
 
 ---

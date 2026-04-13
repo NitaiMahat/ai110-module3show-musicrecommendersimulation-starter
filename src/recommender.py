@@ -2,6 +2,12 @@ import csv
 from typing import List, Dict, Tuple
 from dataclasses import dataclass
 
+DEFAULT_GENRE_WEIGHT = 2.0
+DEFAULT_MOOD_WEIGHT = 1.0
+DEFAULT_ENERGY_WEIGHT = 1.0
+DEFAULT_VALENCE_WEIGHT = 1.0
+DEFAULT_ACOUSTIC_BONUS = 0.5
+
 @dataclass
 class Song:
     """
@@ -96,34 +102,41 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     """Score one song and return both the total and the reasons behind it."""
     score = 0.0
     reasons: List[str] = []
+    genre_weight = float(user_prefs.get("genre_weight", DEFAULT_GENRE_WEIGHT))
+    mood_weight = float(user_prefs.get("mood_weight", DEFAULT_MOOD_WEIGHT))
+    energy_weight = float(user_prefs.get("energy_weight", DEFAULT_ENERGY_WEIGHT))
+    valence_weight = float(user_prefs.get("valence_weight", DEFAULT_VALENCE_WEIGHT))
+    acoustic_bonus = float(user_prefs.get("acoustic_bonus", DEFAULT_ACOUSTIC_BONUS))
 
     if song.get("genre") == user_prefs.get("genre"):
-        score += 2.0
-        reasons.append("genre match (+2.0)")
+        score += genre_weight
+        reasons.append(f"genre match (+{genre_weight:.1f})")
 
     if song.get("mood") == user_prefs.get("mood"):
-        score += 1.0
-        reasons.append("mood match (+1.0)")
+        score += mood_weight
+        reasons.append(f"mood match (+{mood_weight:.1f})")
 
     target_energy = user_prefs.get("energy")
     if target_energy is not None and song.get("energy") is not None:
         energy_similarity = max(0.0, 1 - abs(song["energy"] - target_energy))
-        score += energy_similarity
-        reasons.append(f"energy similarity (+{energy_similarity:.2f})")
+        energy_points = energy_similarity * energy_weight
+        score += energy_points
+        reasons.append(f"energy similarity (+{energy_points:.2f})")
 
     target_valence = user_prefs.get("valence")
     if target_valence is not None and song.get("valence") is not None:
         valence_similarity = max(0.0, 1 - abs(song["valence"] - target_valence))
-        score += valence_similarity
-        reasons.append(f"valence similarity (+{valence_similarity:.2f})")
+        valence_points = valence_similarity * valence_weight
+        score += valence_points
+        reasons.append(f"valence similarity (+{valence_points:.2f})")
 
     likes_acoustic = user_prefs.get("likes_acoustic")
     acousticness = song.get("acousticness")
     if likes_acoustic is not None and acousticness is not None:
         acoustic_match = acousticness >= 0.6 if likes_acoustic else acousticness < 0.6
         if acoustic_match:
-            score += 0.5
-            reasons.append("acoustic preference match (+0.5)")
+            score += acoustic_bonus
+            reasons.append(f"acoustic preference match (+{acoustic_bonus:.1f})")
 
     if not reasons:
         reasons.append("baseline similarity only")
